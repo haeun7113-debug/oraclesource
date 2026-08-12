@@ -105,6 +105,112 @@ WHERE
 ORDER BY
 	e.HIRE_DATE ;
 
+-- last_name 에 u 가 포함된 사원들의 first_name, last_name, employee_id 조회
+SELECT
+	e.FIRST_NAME ,
+	e.LAST_NAME ,
+	e.EMPLOYEE_ID
+FROM
+	EMPLOYEES e
+WHERE
+	e.LAST_NAME LIKE '%u%';
+
+-- last_name 의 네번째 글자가 a 인 사원들의 employee_id,first_name,last_name 조회
+SELECT
+	e.FIRST_NAME ,
+	e.LAST_NAME ,
+	e.EMPLOYEE_ID
+FROM
+	EMPLOYEES e
+WHERE
+	e.LAST_NAME LIKE '___a%';
+
+-- last_name 에 a 혹은 e 글자가 있는 사원들의 employee_id,first_name,last_name 조회
+SELECT
+	e.FIRST_NAME ,
+	e.LAST_NAME ,
+	e.EMPLOYEE_ID
+FROM
+	EMPLOYEES e
+WHERE
+	e.LAST_NAME LIKE '%a%'
+	OR e.LAST_NAME LIKE '%e%';
+
+-- manager_id 가 없는 직원들의 last_name, job_id 조회
+SELECT e.LAST_NAME ,e.JOB_ID 
+FROM EMPLOYEES e 
+WHERE e.MANAGER_ID IS NULL;
+-- ST_CLERK 인 직업 id 를 가진 사원이 없은 부서 id 조회(단, 부서번호가 NULL 인 경우 제외)
+SELECT
+	e.LAST_NAME ,E.JOB_ID 
+FROM
+	EMPLOYEES e
+WHERE
+	e.JOB_ID NOT IN ('ST_CLERK')
+	AND e.DEPARTMENT_ID  IS NOT NULL; 
+
+-- COMMISSION_PCT 가 NULL 이 아닌 사원들 중에서 COMMISSION = SALARY * COMMISSION_PCT를 구한 후
+-- EMPLOYEE_ID,FIRST_NAME,JOB_ID 조회
+SELECT
+	e.DEPARTMENT_ID, e.FIRST_NAME, e.JOB_ID,  
+	 e.SALARY * e.COMMISSION_PCT AS COMMISSION
+FROM
+	EMPLOYEES e
+WHERE
+	e.COMMISSION_PCT IS NOT NULL;
+	
+
+-- 문자열 함수
+-- frist_name 이 Curtis인 사람의 first_name,last_name,email,phone_number,job_id 조회
+-- 단, job_id 의 결과는 소문자로 출력
+SELECT E.FIRST_NAME ,E.LAST_NAME,E.EMAIL, E.PHONE_NUMBER, lower(E.JOB_ID) 
+FROM EMPLOYEES e 
+WHERE E.FIRST_NAME = 'Curtis';
+
+
+-- 부서번호가 60,70,80,90인 사원들의 employee_id, first_name, hire_date, job_id 조회
+-- 단, job_id 가 IT_PROG 인 사원의 경우 '프로그래머' 로 변경후 출력
+SELECT
+	e.EMPLOYEE_ID ,
+	e.FIRST_NAME ,
+	e.HIRE_DATE ,
+	REPLACE(e.JOB_ID , 'IT_PROG', '프로그래머')
+FROM 
+ 	EMPLOYEES e
+WHERE
+e.DEPARTMENT_ID IN (60, 70, 80, 90);
+--JOB_ID 가 AD_PRES, PU_CLERK 인 사원들의 EMPLOYEE_ID,FIRST_NAME,LAST_NAME,DEPARTMENT_ID
+-- JOB_ID 를 조회, 단, 사원명은 FIRST_NAME,LAST_NAME 을 연결하여 출력(사이에 공백 하나 포함)
+
+SELECT 
+	e.EMPLOYEE_ID ,
+	e.FIRST_NAME || ' ' || E.LAST_NAME,
+	e.DEPARTMENT_ID,
+	E.JOB_ID 
+FROM 
+ 	EMPLOYEES e
+WHERE
+	e.JOB_ID  IN ('AD_PRES','PU_CLERK')
+
+-- 입사 10주년이 되는 날짜 출력
+-- 사원번호, 이름(f,l),입사일
+SELECT
+	e.FIRST_NAME ,
+	e.LAST_NAME ,
+	e.EMPLOYEE_ID ,
+	add_months(e.HIRE_DATE , 120)
+FROM
+	EMPLOYEES e;
+
+
+
+
+
+
+
+
+
+
 
 
 
