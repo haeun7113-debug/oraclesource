@@ -108,6 +108,205 @@ SELECT o.ORDER_ID, 'ORD-' || LPAD(O.ORDER_ID ,5,'0')AS ORDER_CODE
 FROM ORDERS o ;
 
 
+-- 모든 주문에 대해 주문한 고객의 이름을 함께 출력
+SELECT
+	O.*,
+	C.FULL_NAME
+FROM
+	ORDERS o
+JOIN CUSTOMERS c ON
+	O.CUSTOMER_ID = C.CUSTOMER_ID;
+
+
+
+
+-- 모든 주문에 대해 주문이 발생한 매장 이름(STORE_NAME)을 함께 조회
+SELECT
+	O.*,
+	S.STORE_NAME 
+FROM
+	ORDERS o
+JOIN STORES s ON
+	O.STORE_ID = S.STORE_ID;
+
+
+
+
+-- 모든 주문상세(ORDER_ITEMS)에 대해 상품명(PRODUCT_NAME) 조회
+SELECT distinct
+	OI.*, P.PRODUCT_NAME 
+FROM
+	ORDER_ITEMS oi
+JOIN PRODUCTS p ON 
+	OI.PRODUCT_ID  = P.PRODUCT_ID;
+
+
+
+
+-- 모든 배송에 대해 배송받는 고객의 이름 조회
+SELECT
+	C.FULL_NAME ,S.DELIVERY_ADDRESS 
+FROM
+	CUSTOMERS c
+JOIN SHIPMENTS s  ON
+	C.CUSTOMER_ID = S.CUSTOMER_ID ;
+
+
+-- 재고(inventory) + 매장이름 + 상품명 조회
+SELECT i.INVENTORY_ID, s.STORE_NAME ,p.PRODUCT_NAME 
+FROM
+	STORES s
+JOIN INVENTORY i ON
+	s.STORE_ID  = i.STORE_ID 
+JOIN PRODUCTS p ON 
+	i.PRODUCT_ID = p.PRODUCT_ID; 
+
+-- 고객이름, 주문일시(order_tms), 매장이름 조회
+SELECT c.FULL_NAME ,o.ORDER_TMS ,s.STORE_NAME 
+FROM
+	ORDERS o
+JOIN CUSTOMERS c ON
+	o.CUSTOMER_ID = c.CUSTOMER_ID 
+JOIN STORES s  ON
+    o.STORE_ID = s.STORE_ID ;
+
+
+-- 각 주문 상세 건에 대해 고객이름, 상품명, 수량을 조회
+-- customers,orders,order_items,products
+SELECT
+	c.FULL_NAME,
+	o.ORDER_TMS,
+	oi.QUANTITY,
+	p.PRODUCT_NAME 
+FROM
+	ORDERs o
+JOIN CUSTOMERS c ON 
+	o.CUSTOMER_ID = c.CUSTOMER_ID
+JOIN ORDER_ITEMS oi ON
+	o.ORDER_ID = oi.ORDER_ID
+JOIN PRODUCTS p ON
+	oi.PRODUCT_ID = p.PRODUCT_ID ;
+
+
+
+-- 각 배송 건에 대해 고객이름, 배송지,매장이름 조회
+SELECT
+	c.FULL_NAME ,
+	s.DELIVERY_ADDRESS ,
+	s2.STORE_NAME
+FROM
+	CUSTOMERS c
+JOIN SHIPMENTS s ON 
+		c.CUSTOMER_ID = s.CUSTOMER_ID
+JOIN STORES s2 ON 
+	s.STORE_ID = s2.STORE_ID ;
+
+-- 각 주문 상세 건에 대해 상품명과 그 상품을 실제로 배송한 배송상태(shipment_status)를
+-- 조회
+SELECT
+	oi.order_id,
+	oi.line_item_id,
+	p.PRODUCT_NAME ,
+	s.SHIPMENT_STATUS 
+FROM
+	ORDER_ITEMS oi  
+JOIN SHIPMENTS s ON 
+oi.SHIPMENT_ID = s.SHIPMENT_ID
+JOIN PRODUCTS p  ON 
+	p.PRODUCT_ID = oi.PRODUCT_ID ;
+
+
+
+
+-- left join
+-- 한 번도 주문하지 않은 고객이 있는지 조회(customers,orders)
+SELECT *
+FROM
+	CUSTOMERS c
+LEFT JOIN ORDERS o ON
+	c.CUSTOMER_ID = o.CUSTOMER_ID
+WHERE o.ORDER_ID  IS NULL;
+-- 아직 배송 정보가 없는 주문상세 건 조회(order_items,shipments)
+SELECT
+	oi.ORDER_ID ,
+	oi.PRODUCT_ID ,
+	s.SHIPMENT_ID
+FROM
+	ORDER_ITEMS oi
+LEFT JOIN SHIPMENTS s ON
+	oi.SHIPMENT_ID = s.SHIPMENT_ID
+WHERE
+	s.SHIPMENT_ID IS NULL;
+	
+	-- 어떤 매장에도 배송된 적 없는 고객 정보 조회(customers,shipments)
+SELECT
+	C.CUSTOMER_ID,c.FULL_NAME 
+FROM
+	CUSTOMERS c
+LEFT JOIN SHIPMENTS s ON
+	c.CUSTOMER_ID = s.CUSTOMER_ID
+WHERE
+	s.SHIPMENT_ID IS NULL;
+
+-- sum,count,avg...
+-- 고객별 총 주문건수 
+-- customer_id,full_name, 5
+SELECT c.CUSTOMER_ID ,c.FULL_NAME ,count(o.ORDER_ID )
+FROM ORDERS o JOIN CUSTOMERS c ON 
+o.CUSTOMER_ID  = c.CUSTOMER_ID 
+GROUP BY c.CUSTOMER_ID ,c.FULL_NAME 	
+ORDER BY c.customer_id;	
+	
+
+-- 매장별 재고 등록 상품 수와 총 재고수량 조회
+SELECT
+	s.STORE_ID ,
+	s.STORE_NAME ,
+	count(i.PRODUCT_ID) AS product_count,
+	sum(i.PRODUCT_INVENTORY) AS toatl_inventory
+FROM
+	STORES s
+JOIN INVENTORY i ON
+	s.STORE_ID = i.STORE_ID
+GROUP BY
+	s.STORE_ID, s.STORE_NAME ;
+	
+
+-- 고객별 총 구매금액(unit_price * quantity) 을 구하고 금액이 높은 순으로 정렬
+SELECT
+	c.CUSTOMER_ID ,
+	c.FULL_NAME ,
+	sum(oi.QUANTITY * oi.UNIT_PRICE)AS total_amount
+FROM
+	CUSTOMERS c
+JOIN ORDERS o ON
+	o.CUSTOMER_ID = c.CUSTOMER_ID
+JOIN ORDER_ITEMS oi ON
+	o.ORDER_ID = oi.ORDER_ID
+GROUP BY
+	c.CUSTOMER_ID ,
+	c.FULL_NAME
+ORDER BY
+	total_amount DESC;
+
+
+-- 매장별 매출 순위 조회(stores + orders + order_items)
+SELECT
+	s.STORE_ID ,
+	s.STORE_NAME ,
+	sum(oi.QUANTITY * oi.UNIT_PRICE) AS total_amount
+FROM
+	ORDERS o
+JOIN STORES s ON
+	o.STORE_ID = s.STORE_ID
+JOIN ORDER_ITEMS oi ON
+	o.ORDER_ID = oi.ORDER_ID
+GROUP BY
+	s.STORE_ID ,
+	s.STORE_NAME 
+ORDER BY
+	total_amount DESC;
+
 
 
 
