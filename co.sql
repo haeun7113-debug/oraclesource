@@ -308,6 +308,166 @@ ORDER BY
 	total_amount DESC;
 
 
+--서브쿼리
+
+-- 전체 상품의 평균단가보다 비싼 상품 조회
+SELECT *
+FROM
+	PRODUCTS P
+WHERE
+	P.UNIT_PRICE > (
+	SELECT 
+		AVG(P.UNIT_PRICE)
+	FROM
+		PRODUCTS P );
+-- 각 상품에 대해 전체 평균단가와의 차액을 함께 조회(select 절 서브쿼리)
+SELECT
+	P.PRODUCT_ID ,
+	P.PRODUCT_IMAGE ,
+	P.UNIT_PRICE,
+	P.UNIT_PRICE -(SELECT AVG(P.UNIT_PRICE)FROM PRODUCTS p)AS DIFF_FROM_AVG
+FROM
+	PRODUCTS p; 
+-- 가장 최근에 주문한 건의 주문 정보 조회
+SELECT *
+FROM ORDERS o 
+WHERE O.ORDER_TMS =(SELECT MAX(O.ORDER_TMS)FROM ORDERS o);
+
+--SELECT MAX(O.ORDER_TMS) 
+--FROM ORDERS o ;
+
+-- 도쿄지역 매장에서 발생한 주문만 조회
+-- orders의 store_id 가 서브쿼리 결과 in 인 경우
+SELECT *
+FROM
+	ORDERS o
+WHERE
+	O.STORE_ID IN (SELECT S.STORE_ID 
+FROM
+	STORES S
+WHERE
+	S.PHYSICAL_ADDRESS LIKE '%Tokyo%');
+
+
+
+
+-- 'CANCELLED'상태인 주문을 한 번이라도 한 적 있는 고객 조회
+SELECT
+	*
+FROM
+	CUSTOMERS c
+WHERE
+	c.CUSTOMER_ID IN(
+SELECT o.CUSTOMER_ID 
+FROM ORDERS o 
+WHERE O.ORDER_STATUS = 'CANCELLED');
+
+
+
+-- 재고에 한번도 등록된 적이 없는 상품 조회
+SELECT
+	p.PRODUCT_ID ,
+	p.PRODUCT_NAME
+FROM
+	PRODUCTS p
+WHERE
+	p.PRODUCT_ID 
+NOT IN(SELECT i.PRODUCT_ID FROM INVENTORY i);
+-- 주문을 한 번이라도 한 고객 조회(EXISTS 사용)
+SELECT
+	c.CUSTOMER_ID ,
+	c.FULL_NAME
+FROM
+	CUSTOMERS c
+WHERE
+	EXISTS(
+	SELECT 1 FROM ORDERS o WHERE c.CUSTOMER_ID = o.CUSTOMER_ID 
+);
+-- 재고수량이 0인 상품이 하나라도 있는 매장 조회(EXISTS 사용)
+SELECT
+	s.STORE_ID ,
+	s.STORE_NAME
+FROM
+	STORES s
+WHERE
+	EXISTS(
+	SELECT 1 
+	FROM INVENTORY i 
+	WHERE i.PRODUCT_INVENTORY = 0 AND s.STORE_ID =i.STORE_ID); 
+
+-- 매장별 평균 상품 단가를 구하는 서브쿼리를 생성 뒤 전체 매장 평균보다 높은 매장만 다시 추출
+SELECT
+	*
+FROM
+	(
+	SELECT
+		s.STORE_ID ,
+		s.STORE_NAME ,
+		avg(p.UNIT_PRICE) AS avg_price
+	FROM
+		STORES s
+	JOIN INVENTORY i ON
+		s.STORE_ID = i.STORE_ID
+	JOIN PRODUCTS p ON
+		i.PRODUCT_ID = p.PRODUCT_ID
+	GROUP BY
+		s.STORE_ID ,
+		s.STORE_NAME) store_Avg
+WHERE
+	avg_price > (
+	SELECT
+		avg(p.unit_price)
+	FROM
+		products p);
+
+-- 각 고객에 대해 가장 최근 주문일을 서브쿼리로 구하고 그 주문의 매장 이름까지 함께 조회
+SELECT c.CUSTOMER_ID ,c.FULL_NAME ,o.ORDER_TMS ,s.STORE_NAME 
+FROM
+	CUSTOMERS c
+JOIN orders o ON
+	c.CUSTOMER_ID = o.CUSTOMER_ID
+	AND  
+	o.ORDER_TMS = (
+	SELECT
+		max(o.ORDER_TMS)
+	FROM
+		ORDERS o
+	WHERE
+		o.CUSTOMER_ID = c.CUSTOMER_ID)
+JOIN stores s ON s.STORE_ID =o.STORE_ID; 
+
+
+
+-- 상품별 판매 순위를 매기되 판매된 적이 한 번도 없는 상품도 0건으로 함께 표시
+-- rank() over()
+SELECT p.PRODUCT_ID ,p.UNIT_PRICE ,rank() over(ORDER BY p.UNIT_PRICE desc)
+FROM PRODUCTS p; 
+
+SELECT
+	p.product_id,
+	p.PRODUCT_NAME,
+	nvl(sum(oi.QUANTITY), 0) AS total_sold,
+	RANK() OVER(ORDER BY nvl(sum(oi.QUANTITY), 0)DESC) AS sales_rank
+FROM
+	PRODUCTS p
+LEFT JOIN ORDER_ITEMS oi ON
+	p.PRODUCT_ID = oi.PRODUCT_ID
+GROUP BY
+	p.PRODUCT_ID ,
+	p.PRODUCT_NAME;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
